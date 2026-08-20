@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from .serializers import ( UserRegistrationSerializer,OnboardingSerializer,
 UserLoginSerializer, get_tokens_for_user,LogoutSerializer,
 AccountInfoSerializer, PersonalInfoSerializer ,ChangePasswordSerializer,Verify2FASerializer, 
@@ -42,6 +43,7 @@ OTP_TTL_SECONDS = 300  # 5 minutes
 class UserRegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=UserRegistrationSerializer, responses={201: None})
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -73,6 +75,7 @@ class OnboardingView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
+    @extend_schema(request=OnboardingSerializer, responses={200: None})
     def post(self, request):
         if request.user.base_role != 'user':
             return Response(
@@ -115,6 +118,7 @@ class OnboardingView(APIView):
 class UserLoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=UserLoginSerializer, responses={200: None})
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -180,6 +184,7 @@ class UserLoginView(APIView):
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(request=LogoutSerializer, responses={200: None})
     def post(self, request):
         serializer = LogoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -208,13 +213,16 @@ class LogoutView(APIView):
 class AccountInfoView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses={200: AccountInfoSerializer})
     def get(self, request):
+
         serializer = AccountInfoSerializer(request.user)
         return Response(
             {"success": True, "data": serializer.data},
             status=status.HTTP_200_OK
         )
 
+    @extend_schema(request=AccountInfoSerializer, responses={200: None})
     def patch(self, request):
         serializer = AccountInfoSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -241,6 +249,7 @@ class PersonalInfoView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsVerifiedForActions]
     parser_classes = [MultiPartParser, FormParser]
 
+    @extend_schema(responses={200: PersonalInfoSerializer})
     def get(self, request):
         try:
             profile = request.user.user_profile
@@ -256,16 +265,8 @@ class PersonalInfoView(APIView):
             status=status.HTTP_200_OK
         )
 
+    @extend_schema(request=PersonalInfoSerializer, responses={200: None})
     def patch(self, request):
-        try:
-            profile = request.user.user_profile
-        except UserProfile.DoesNotExist:
-            return Response(
-                {"success": False, "message": "User profile not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        serializer = PersonalInfoSerializer(profile, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -288,6 +289,7 @@ class PersonalInfoView(APIView):
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(request=ChangePasswordSerializer, responses={200: None})
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -320,6 +322,7 @@ class Setup2FAView(APIView):
     """Step 1: Generate a TOTP secret and return a QR code to scan."""
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses={200: None})
     def post(self, request):
         user = request.user
 
@@ -368,6 +371,7 @@ class Verify2FAView(APIView):
     """Step 2: Confirm the user scanned correctly by submitting a valid code, activating 2FA."""
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(request=Verify2FASerializer, responses={200: None})
     def post(self, request):
         serializer = Verify2FASerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -408,6 +412,7 @@ class Verify2FAView(APIView):
 class Disable2FAView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(request=Disable2FASerializer, responses={200: None})
     def post(self, request):
         serializer = Disable2FASerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -434,6 +439,7 @@ class LoginWith2FAView(APIView):
     """Step 2 of login: identifier + TOTP code, issues real JWT tokens."""
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=LoginWith2FASerializer, responses={200: None})
     def post(self, request):
         serializer = LoginWith2FASerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -481,6 +487,7 @@ class LoginWith2FAView(APIView):
 class ForgotPasswordRequestView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=ForgotPasswordRequestSerializer, responses={200: None})
     def post(self, request):
         serializer = ForgotPasswordRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -515,6 +522,7 @@ class ForgotPasswordRequestView(APIView):
 class ResetPasswordView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=ResetPasswordSerializer, responses={200: None})
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -559,6 +567,7 @@ class ResetPasswordView(APIView):
 class GoogleAuthView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=GoogleAuthSerializer, responses={200: None})
     def post(self, request):
         serializer = GoogleAuthSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -655,6 +664,7 @@ class StaffLoginView(APIView):
     """Login for operator and operator admin via email/phone OR operator_id (OP-/OA-) + password."""
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=StaffLoginSerializer, responses={200: None})
     def post(self, request):
         serializer = StaffLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -746,6 +756,7 @@ class OperatorOnboardingView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsStaffRole]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
+    @extend_schema(responses={200: OperatorOnboardingSerializer})
     def get(self, request):
         try:
             onboarding = request.user.operator_onboarding
@@ -761,6 +772,7 @@ class OperatorOnboardingView(APIView):
             status=status.HTTP_200_OK
         )
 
+    @extend_schema(request=OperatorOnboardingSerializer, responses={201: OperatorOnboardingSerializer})
     def post(self, request):
         if OperatorOnboarding.objects.filter(user=request.user).exists():
             return Response(
@@ -788,6 +800,7 @@ class OperatorOnboardingView(APIView):
             status=status.HTTP_201_CREATED
         )
 
+    @extend_schema(request=OperatorOnboardingSerializer, responses={200: OperatorOnboardingSerializer})
     def patch(self, request):
         try:
             onboarding = request.user.operator_onboarding
@@ -824,6 +837,7 @@ class StaffRegistrationView(APIView):
     """Register an operator (role='operator') or operator admin (role='operatoradmin')."""
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=StaffRegistrationSerializer, responses={201: None})
     def post(self, request):
         serializer = StaffRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -856,6 +870,7 @@ class StaffRegistrationView(APIView):
 class OperatorAccountInfoView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsApprovedStaff]
 
+    @extend_schema(responses={200: AccountInfoSerializer})
     def get(self, request):
         try:
             serializer = AccountInfoSerializer(request.user)
@@ -869,6 +884,7 @@ class OperatorAccountInfoView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @extend_schema(request=AccountInfoSerializer, responses={200: None})
     def patch(self, request):
         try:
             serializer = AccountInfoSerializer(request.user, data=request.data, partial=True)
@@ -893,6 +909,7 @@ class OperatorPersonalInfoView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsApprovedStaff]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
+    @extend_schema(responses={200: OperatorPersonalInfoSerializer})
     def get(self, request):
         try:
             onboarding = request.user.operator_onboarding
@@ -908,6 +925,7 @@ class OperatorPersonalInfoView(APIView):
             status=status.HTTP_200_OK
         )
 
+    @extend_schema(request=OperatorOnboardingSerializer, responses={200: OperatorPersonalInfoSerializer})
     def patch(self, request):
         try:
             onboarding = request.user.operator_onboarding
@@ -943,6 +961,7 @@ class OperatorPersonalInfoView(APIView):
 class OperatorChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsStaffRole]
 
+    @extend_schema(request=ChangePasswordSerializer, responses={200: None})
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -973,6 +992,7 @@ class OperatorChangePasswordView(APIView):
 class OperatorLogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsStaffRole]
 
+    @extend_schema(request=LogoutSerializer, responses={200: None})
     def post(self, request):
         serializer = LogoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1008,6 +1028,13 @@ class OperatorOnboardingListView(APIView):
     """Operator admin: list operator onboarding requests. Super admin: see all."""
     permission_classes = [permissions.IsAuthenticated, IsOperatorAdminOrSuperAdmin]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("status", str, enum=["pending", "approved"], description="Filter by status"),
+            OpenApiParameter("role", str, description="Filter by role"),
+        ],
+        responses={200: OperatorOnboardingAdminSerializer(many=True)}
+    )
     def get(self, request):
         try:
             queryset = OperatorOnboarding.objects.select_related(
@@ -1043,6 +1070,10 @@ class OperatorOnboardingApproveView(APIView):
     """Operator admin approves operators; super admin approves operator admins."""
     permission_classes = [permissions.IsAuthenticated, IsOperatorAdminOrSuperAdmin]
 
+    @extend_schema(
+        request=OpenApiTypes.OBJECT,
+        responses={200: OperatorOnboardingAdminSerializer}
+    )
     def post(self, request):
         onboarding_id = request.data.get('id')
         if not onboarding_id:
@@ -1103,6 +1134,7 @@ class OperatorOnboardingRejectView(APIView):
     """Operator admin rejects operators; super admin rejects operator admins."""
     permission_classes = [permissions.IsAuthenticated, IsOperatorAdminOrSuperAdmin]
 
+    @extend_schema(request=RejectOnboardingSerializer, responses={200: OperatorOnboardingAdminSerializer})
     def post(self, request):
         serializer = RejectOnboardingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1161,6 +1193,12 @@ class AdminUserOnboardingListView(APIView):
     """Operator admin / super admin: list user (customer) onboarding requests."""
     permission_classes = [permissions.IsAuthenticated, IsOperatorAdminOrSuperAdmin]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("status", str, enum=["pending", "approved", "not_submitted"], description="Filter by status"),
+        ],
+        responses={200: AdminUserOnboardingSerializer(many=True)}
+    )
     def get(self, request):
         try:
             queryset = UserProfile.objects.select_related('user', 'verified_by').filter(
@@ -1191,6 +1229,10 @@ class AdminUserOnboardingApproveView(APIView):
     """Operator admin / super admin approves a user's onboarding."""
     permission_classes = [permissions.IsAuthenticated, IsOperatorAdminOrSuperAdmin]
 
+    @extend_schema(
+        request=OpenApiTypes.OBJECT,
+        responses={200: AdminUserOnboardingSerializer}
+    )
     def post(self, request):
         profile_id = request.data.get('id')
         if not profile_id:
@@ -1244,6 +1286,7 @@ class AdminUserOnboardingRejectView(APIView):
     """Operator admin / super admin rejects a user's onboarding."""
     permission_classes = [permissions.IsAuthenticated, IsOperatorAdminOrSuperAdmin]
 
+    @extend_schema(request=RejectOnboardingSerializer, responses={200: AdminUserOnboardingSerializer})
     def post(self, request):
         serializer = RejectOnboardingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1295,6 +1338,7 @@ class AdminLoginView(APIView):
     """Login for the super admin via email + password (with 2FA branch)."""
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=AdminLoginSerializer, responses={200: None})
     def post(self, request):
         serializer = AdminLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1358,6 +1402,7 @@ class AdminUserListView(APIView):
     """Super admin: list all regular users."""
     permission_classes = [permissions.IsAuthenticated, IsSuperAdminRole]
 
+    @extend_schema(responses={200: AdminUserListSerializer(many=True)})
     def get(self, request):
         try:
             queryset = CustomUser.objects.filter(base_role='user').select_related('user_profile')
@@ -1377,6 +1422,7 @@ class AdminOperatorListView(APIView):
     """Super admin: list all operators."""
     permission_classes = [permissions.IsAuthenticated, IsSuperAdminRole]
 
+    @extend_schema(responses={200: AdminStaffListSerializer(many=True)})
     def get(self, request):
         try:
             queryset = CustomUser.objects.filter(base_role='operator').select_related('operator_profile')
@@ -1396,6 +1442,7 @@ class AdminOperatorAdminListView(APIView):
     """Super admin: list all operator admins."""
     permission_classes = [permissions.IsAuthenticated, IsSuperAdminRole]
 
+    @extend_schema(responses={200: AdminStaffListSerializer(many=True)})
     def get(self, request):
         try:
             queryset = CustomUser.objects.filter(base_role='operatoradmin').select_related('operatoradmin_profile')
@@ -1415,6 +1462,13 @@ class AdminOnboardingListView(APIView):
     """Super admin: list all onboarding requests (operators + operator admins)."""
     permission_classes = [permissions.IsAuthenticated, IsSuperAdminRole]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("status", str, enum=["pending", "approved"], description="Filter by status"),
+            OpenApiParameter("role", str, description="Filter by role"),
+        ],
+        responses={200: OperatorOnboardingAdminSerializer(many=True)}
+    )
     def get(self, request):
         try:
             queryset = OperatorOnboarding.objects.select_related('user', 'approved_by').all()
